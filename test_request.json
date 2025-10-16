@@ -1,0 +1,16 @@
+{
+  "email": "student@example.com",
+  "secret": "i_am_a_secret",
+  "task": "task-id",
+  "round": 1,
+  "nonce": "unique-nonce",
+  "brief": "Create a...",
+  "checks": ["Check 1", "Check 2"],
+  "evaluation_url": "https://...",
+  "attachments": [
+    {
+      "name": "data.csv",
+      "url": "data:text/csv;base64,..."
+    }
+  ]
+}
