@@ -26,12 +26,31 @@ class GitHubManager:
             self._add_license(repo)
             
             # Push files
+            # Push files (create or update if they already exist)
             for filename, content in files.items():
-                repo.create_file(
-                    path=filename,
-                    message=f"Add {filename}",
-                    content=content
-                )
+                try:
+                    repo.create_file(
+                        path=filename,
+                        message=f"Add {filename}",
+                        content=content
+                    )
+                except GithubException as e:
+                    # Handle case where file already exists (422 "sha wasn't supplied")
+                    if e.status == 422 and "sha" in str(e.data):
+                        try:
+                            existing_file = repo.get_contents(filename)
+                            repo.update_file(
+                                path=filename,
+                                message=f"Update {filename}",
+                                content=content,
+                                sha=existing_file.sha
+                            )
+                            print(f"✓ Updated existing file: {filename}")
+                        except Exception as inner_e:
+                            print(f"✗ Failed to update {filename}: {inner_e}")
+                    else:
+                        print(f"✗ Error creating {filename}: {e.data}")
+
             
             # Enable GitHub Pages
             self._enable_github_pages(repo)
