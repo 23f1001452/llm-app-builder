@@ -10,6 +10,7 @@ import asyncio
 from llm_generator import LLMGenerator
 from github_manager import GitHubManager
 from attachment_handler import AttachmentHandler
+from secret_scanner import SecretScanner
 
 load_dotenv()
 
@@ -19,6 +20,7 @@ app = FastAPI(title="LLM App Builder")
 llm_gen = LLMGenerator()
 github_mgr = GitHubManager()
 attachment_handler = AttachmentHandler()
+secret_scanner = SecretScanner()
 
 # Store for tracking repos by task
 task_repos = {}
@@ -79,6 +81,10 @@ def submit_to_evaluation(payload: EvaluationPayload, evaluation_url: str):
 
 def build_and_deploy(request: BuildRequest):
     """Background task to build and deploy the application"""
+    import time
+    start_time = time.time()
+    MAX_TIME_SECONDS = 600  # 10 minutes as per requirements
+    
     try:
         print(f"\n{'='*60}")
         print(f"Building app for task: {request.task} (Round {request.round})")
@@ -95,7 +101,8 @@ def build_and_deploy(request: BuildRequest):
         files = llm_gen.generate_app_code(
             brief=request.brief,
             checks=request.checks,
-            attachments=[a.dict() for a in request.attachments]
+            attachments=[a.dict() for a in request.attachments],
+            processed_attachments=processed_attachments
         )
         
         # Deploy to GitHub
@@ -127,6 +134,13 @@ def build_and_deploy(request: BuildRequest):
             print(f"✓ Repository updated with commit: {commit_sha[:7]}")
         
         print(f"✓ GitHub Pages URL: {result['pages_url']}")
+        
+        # Check if we're within the 10-minute time limit
+        elapsed_time = time.time() - start_time
+        if elapsed_time >= MAX_TIME_SECONDS:
+            print(f"⚠️  WARNING: Exceeded 10 minute time limit ({elapsed_time:.1f}s)")
+        else:
+            print(f"✓ Completed in {elapsed_time:.1f} seconds (within 10 minute limit)")
         
         # Wait a moment for GitHub to process
         print("Waiting for GitHub to process deployment...")
