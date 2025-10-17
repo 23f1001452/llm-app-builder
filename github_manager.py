@@ -245,7 +245,7 @@ class GitHubManager:
         except Exception as e:
             print(f"REST API method failed: {e}")
         
-        # Method 2: Try PyGithub API
+        '''# Method 2: Try PyGithub API
         try:
             repo.create_pages_site(
                 source={
@@ -259,7 +259,7 @@ class GitHubManager:
             if e.status == 409:
                 print("✓ GitHub Pages already enabled")
                 return True
-            print(f"PyGithub method note: {e.status}")
+            print(f"PyGithub method note: {e.status}")'''
         
         # Method 3: Create gh-pages branch (triggers auto-enable)
         try:
