@@ -8,15 +8,14 @@ class LLMGenerator:
     api_key=os.getenv("LLM_API_KEY"),
     base_url="https://api.groq.com/openai/v1"
 )
-
     
     def generate_app_code(self, brief: str, checks: List[str], attachments: List[Dict]) -> Dict[str, str]:
         """Generate HTML/CSS/JS code based on brief"""
         
         prompt = self._build_prompt(brief, checks, attachments)
         
-        message = self.client.messages.create(
-            model="claude-sonnet-4-5-20250929",
+        message = self.client.chat.completions.create(
+            model="groq/compound-mini",
             max_tokens=8000,
             messages=[{
                 "role": "user",
