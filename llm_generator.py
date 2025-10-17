@@ -23,8 +23,10 @@ class LLMGenerator:
             }]
         )
         
-        # Parse the response to extract code
-        return self._parse_response(message.content[0].text)
+        response = message.choices[0].message.content
+        return self._parse_response(response)
+        #return self._parse_response(completion.choices[0].message.content
+
     
     def _build_prompt(self, brief: str, checks: List[str], attachments: List[Dict]) -> str:
         attachment_info = "\n".join([f"- {a['name']}: {a['url'][:100]}..." for a in attachments])
