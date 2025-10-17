@@ -95,8 +95,7 @@ def build_and_deploy(request: BuildRequest):
         files = llm_gen.generate_app_code(
             brief=request.brief,
             checks=request.checks,
-            attachments=[a.dict() for a in request.attachments],
-            processed_attachments=processed_attachments
+            attachments=[a.dict() for a in request.attachments]
         )
         
         # Deploy to GitHub
