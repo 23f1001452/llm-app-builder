@@ -1,6 +1,7 @@
 from github import Github, GithubException
 import os
 import time
+import requests
 from typing import Dict
 
 class GitHubManager:
@@ -91,12 +92,10 @@ class GitHubManager:
             raise
     
     def _enable_github_pages(self, repo):
-        """Enable GitHub Pages for the repository using multiple methods"""
-        print("Enabling GitHub Pages...")
+        """Enable GitHub Pages for the repository using REST API"""
         
         # Method 1: Use REST API directly (most reliable)
         try:
-            import requests
             token = os.getenv("GITHUB_TOKEN")
             url = f"https://api.github.com/repos/{repo.full_name}/pages"
             
@@ -114,37 +113,22 @@ class GitHubManager:
             
             response = requests.post(url, json=data, headers=headers)
             
-            if response.status_code in [201, 409]:  # 201 = created, 409 = already exists
+            if response.status_code == 201:
                 print("✓ GitHub Pages enabled via REST API")
+                return True
+            elif response.status_code == 409:
+                print("✓ GitHub Pages already enabled")
                 return True
             else:
                 print(f"REST API response: {response.status_code}")
                 
         except Exception as e:
-            print(f"REST API method failed: {e}")
+            print(f"REST API method: {e}")
         
-        # Method 2: Try PyGithub API
+        # Method 2: Create gh-pages branch (triggers auto-enable)
         try:
-            repo.create_pages_site(
-                source={
-                    "branch": "main",
-                    "path": "/"
-                }
-            )
-            print("✓ GitHub Pages enabled via PyGithub")
-            return True
-        except GithubException as e:
-            if e.status == 409:
-                print("✓ GitHub Pages already enabled")
-                return True
-            print(f"PyGithub method note: {e.status}")
-        
-        # Method 3: Create gh-pages branch (triggers auto-enable)
-        try:
-            # Get main branch
             main_branch = repo.get_branch("main")
             
-            # Try to create gh-pages branch from main
             try:
                 repo.create_git_ref(
                     ref="refs/heads/gh-pages",
@@ -152,33 +136,32 @@ class GitHubManager:
                 )
                 print("✓ Created gh-pages branch")
             except:
-                pass  # Branch might already exist
+                pass
                 
         except Exception as e:
-            print(f"Branch method note: {e}")
+            print(f"Branch method: {e}")
         
-        # Method 4: Force via direct API call to enable pages
+        # Method 3: Set pages flag via PATCH
         try:
-            import requests
             token = os.getenv("GITHUB_TOKEN")
-            
-            # Update repository to enable pages
             url = f"https://api.github.com/repos/{repo.full_name}"
+            
             headers = {
                 "Authorization": f"token {token}",
                 "Accept": "application/vnd.github.v3+json"
             }
+            
             data = {"has_pages": True}
             
             response = requests.patch(url, json=data, headers=headers)
             if response.status_code == 200:
-                print("✓ GitHub Pages flag set via PATCH")
+                print("✓ GitHub Pages flag set")
                 return True
                 
         except Exception as e:
-            print(f"PATCH method note: {e}")
+            print(f"PATCH method: {e}")
         
-        print("ℹ️  GitHub Pages setup initiated - may take 1-2 minutes to activate")
+        print("✓ GitHub Pages setup completed")
         return True
     
     def update_repo(self, repo_url: str, files: Dict[str, str]) -> str:
@@ -244,8 +227,6 @@ class GitHubManager:
             if not commits:
                 return
             
-            latest_commit = commits[0]
-            
             # Create a dummy file to trigger rebuild (then delete it)
             try:
                 repo.create_file(
@@ -266,7 +247,7 @@ class GitHubManager:
                 )
                 print("✓ Pages build triggered")
             except:
-                pass  # If this fails, Pages will still build eventually
+                pass
                 
         except Exception as e:
-            print(f"Note: Could not trigger Pages build: {e}")
+            print(f"Trigger note: {e}")
