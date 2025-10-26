@@ -105,6 +105,16 @@ def build_and_deploy(request: BuildRequest):
             processed_attachments=processed_attachments
         )
         
+        # Scan for secrets before deploying
+        print("Scanning for secrets in generated code...")
+        findings = secret_scanner.scan_files(files)
+        if findings:
+            print(secret_scanner.format_findings(findings))
+            print("⚠️  WARNING: Potential secrets detected but continuing deployment")
+            print("    Review the code manually if needed")
+        else:
+            print("✓ No secrets detected in generated code")
+        
         # Deploy to GitHub
         if request.round == 1:
             print(f"Creating new GitHub repository...")
@@ -192,20 +202,30 @@ async def build_app(request: BuildRequest, background_tasks: BackgroundTasks):
     }
 
 @app.get("/")
+@app.head("/")
+@app.post("/")
 async def root():
-    """Root endpoint"""
+    """Root endpoint - supports GET, HEAD, and POST (redirects to /build info)"""
     return {
         "service": "LLM App Builder",
         "status": "running",
+        "message": "To build an app, POST to /build endpoint",
         "endpoints": {
-            "build": "/build",
-            "health": "/health"
+            "build": "POST /build - Build and deploy an app",
+            "health": "GET /health - Check service health"
+        },
+        "usage": {
+            "endpoint": "/build",
+            "method": "POST",
+            "content_type": "application/json",
+            "required_fields": ["email", "secret", "task", "round", "nonce", "brief", "checks", "evaluation_url"]
         }
     }
 
 @app.get("/health")
+@app.head("/health")
 async def health_check():
-    """Health check endpoint"""
+    """Health check endpoint - supports both GET and HEAD"""
     return {
         "status": "healthy",
         "github_configured": bool(os.getenv("GITHUB_TOKEN")),
